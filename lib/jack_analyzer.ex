@@ -6,11 +6,19 @@ defmodule JackAnalyzer do
   alias JackAnalyzer.{Tokenizer, CompilationEngine, PrettyPrinter}
 
   @type compiled_result :: {target_type, {Tokenizer.tokens, CompilationEngine.tree_node}}
+  @type compile_options :: [save_xml: boolean,
+                            output_tokens: boolean,
+                            print_results: boolean]
 
-  @typep path :: binary
-  @typep target :: path | binary
-  @typep target_type :: path | :string
-  @typep output_method :: :file | :stdout | :file_and_stdout | (compiled_result -> any)
+  @type path :: binary
+  @type target :: path | binary
+  @type target_type :: path | :string
+
+  @default_compile_opts [
+    save_xml: true,
+    output_tokens: false,
+    print_results: false
+  ]
 
   @doc """
   Compiles jack source from the provided `target` and outputs the results.
@@ -22,51 +30,21 @@ defmodule JackAnalyzer do
     * `:print_results` - When true, prints the results to the screen.
 
   """
-  @spec compile(target, keyword) :: :ok
+  @spec compile(target, compile_options) :: :ok
   def compile(target, opts \\ []) do
-    save_xml? = opts[:save_xml] || true
-    output_tokens? = opts[:output_tokens] || false
-    print_results? = opts[:save_xml] || false
+    opts = Keyword.merge(@default_compile_opts, opts)
 
     results = compile_target(target)
 
-    if save_xml? do
-      save_all_results(results, output_tokens?)
+    if opts[:save_xml] do
+      save_all_results(results, opts[:output_tokens])
     end
 
-    if print_results? do
-      print_all_results(results, output_tokens?)
+    if opts[:print_results] do
+      print_all_results(results, opts[:output_tokens])
     end
 
     :ok
-  end
-
-  # Saves all of the compiled results to xml files
-  defp save_all_results(results, save_tokens?) do
-    for {source, {tokens, tree} <- results, source !== :string do
-      out_file = to_xml_file(tree, source, :tree)
-      IO.puts "Wrote parsed tree to #{out_file}"
-      if output_tokens? do
-        out_file = to_xml_file(tokens, source, :tokens)
-        IO.puts "Wrote tokens to #{out_file}"
-      end
-    end
-  end
-
-  # Prints all of the compiled results to stdout
-  defp print_all_results(results, show_tokens?) do
-    for {source, {tokens, tree} <- results do
-      source_print =if source === :string, do: "string input", else: source
-      IO.puts "Results for #{source_print}"
-      IO.puts "Parse Tree:"
-      PrettyPrinter.print(tree)
-      IO.puts "Wrote parsed tree to #{out_file}"
-      if output_tokens? do
-        IO.puts "Tokens:"
-        PrettyPrinter.print(tokens)
-      end
-      IO.puts "-------------------------------------"
-    end
   end
 
   @doc """
@@ -79,14 +57,17 @@ defmodule JackAnalyzer do
   """
   @spec compile_target(binary) :: [compiled_result]
   def compile_target(target) when is_binary(target) do
-    List.wrap cond do
-      File.dir?(target) ->
-        target |> Path.expand |> compile_directory
-      File.exists?(target) and Path.extname(target) === ".jack"  ->
-        compile_file(target)
-      :default ->
-        compile_string(target)
-    end
+    results =
+      cond do
+        File.dir?(target) ->
+          target |> Path.expand |> compile_directory
+        File.exists?(target) and Path.extname(target) === ".jack"  ->
+          compile_file(target)
+        :default ->
+          compile_string(target)
+      end
+
+    List.wrap(results)
   end
 
   @doc """
@@ -112,11 +93,42 @@ defmodule JackAnalyzer do
   Compiles all Jack source code files in a directory
   """
   @spec compile_directory(path) :: [compiled_result]
-  def compile_directory(dir, output \\ :string) do
+  def compile_directory(dir) do
     dir
     |> File.ls!
     |> Enum.filter(&(Path.extname(&1) == ".jack"))
     |> Enum.map(&compile_file(dir <> "/" <> &1))
+  end
+
+  @doc """
+  Checks if the target is a valid compilation target. Valid targets are either
+  files with .jack extensions, or a directory containing at least one .jack
+  file.
+  """
+  @spec validate_target(any) :: :ok | {:error, binary}
+  def validate_target(target) when is_binary(target) do
+    cond do
+      File.exists?(target) and Path.extname(target) === ".jack"  ->
+        :ok
+      File.dir?(target) ->
+        if dir_contains_jack_file?(target) do
+          :ok
+        else
+          {:error, "Directory doesn't contain any .jack files."}
+        end
+      :default ->
+        {:error, "Not a file or directory."}
+    end
+  end
+  def validate_target(_), do: false
+
+  # Checks if a directory contains at least one .jack file
+  defp dir_contains_jack_file?(dir) do
+    dir
+    |> File.ls!
+    |> Enum.filter(&(Path.extname(&1) === ".jack"))
+    |> length
+    |> (&(&1 > 0)).()
   end
 
   # Generates output filenames
@@ -145,4 +157,32 @@ defmodule JackAnalyzer do
   defp prepare_xml({key, value}),
     do: {key, nil, value}
 
+  # Saves all of the compiled results to xml files
+  defp save_all_results(results, save_tokens?) do
+    for {source, {tokens, tree}} <- results, source !== :string do
+      out_file = to_xml_file(tree, source, :tree)
+      IO.puts "Wrote parsed tree to #{out_file}"
+      if save_tokens? do
+        out_file = to_xml_file(tokens, source, :tokens)
+        IO.puts "Wrote tokens to #{out_file}"
+      end
+    end
+  end
+
+  # Prints all of the compiled results to stdout
+  defp print_all_results(results, show_tokens?) do
+    for {source, {tokens, tree}} <- results do
+      source_print =if source === :string, do: "string input", else: source
+      IO.puts "Results for #{source_print}"
+      IO.puts "Parse Tree:"
+      PrettyPrinter.print(tree)
+      IO.puts "\n"
+      if show_tokens? do
+        IO.puts "Tokens:"
+        PrettyPrinter.print(tokens)
+        IO.puts "\n"
+      end
+      IO.puts "-------------------------------------"
+    end
+  end
 end

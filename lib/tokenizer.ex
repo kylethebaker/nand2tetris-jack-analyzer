@@ -3,7 +3,7 @@ defmodule JackAnalyzer.Tokenizer do
   Used for converting Jack source code into it's tokenized form.
   """
 
-  require JackAnalyzer.Tokenizer.Guards
+  import JackAnalyzer.Tokenizer.Guards
 
   @type token_type :: :keyword
                     | :symbol

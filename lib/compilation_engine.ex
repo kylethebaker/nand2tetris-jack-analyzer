@@ -32,7 +32,7 @@ defmodule JackAnalyzer.CompilationEngine do
   @type tree_node :: {tree_type, tree_body}
 
   def compile(tks) do
-    {:class, tks}
+    {:class, [tks]}
     #{:class, compile_class({tks, []})}
   end
 

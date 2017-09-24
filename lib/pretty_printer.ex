@@ -7,9 +7,6 @@ defmodule JackAnalyzer.PrettyPrinter do
   @type indent_size :: integer
 
   @single_indent String.duplicate(" ", 4)
-  @open_tag &("<== #{&1} ==>")
-  @close_tag &("<== /#{&1} ==>")
-  @row &("#{&1} :: #{&2}")
 
   @doc """
   Pretty prints the the structure. Printable structures are key/value tuples
@@ -19,16 +16,21 @@ defmodule JackAnalyzer.PrettyPrinter do
   @spec print(printable, indent_size) :: :ok
   def print(tree), do: print(tree, 0)
   def print(tree, indent) when is_list(tree) do
-    for child <- tree, do: print(child, 0)
+    for child <- tree, do: print(child, indent)
   end
   def print({type, children}, indent) when is_list(children) do
-    print_indent(indent, @open_tag.(type))
+    print_indent(indent, open_tag(type))
     for child <- children, do: print(child, indent + 1)
-    print_indent(indent, @close_tag.(type))
+    print_indent(indent, close_tag(type))
   end
   def print({type, value}, indent) do
-    print_indent(indent, @row.(type, value))
+    print_indent(indent, row(type, value))
   end
+
+  # How to format items for the the tree
+  defp open_tag(t), do: "<== #{t} ==>"
+  defp close_tag(t), do: "<== /#{t} ==>"
+  defp row(k, v), do: "#{k} :: #{v}"
 
   # Print a string with leading indents
   defp print_indent(n, str),
