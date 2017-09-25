@@ -3,9 +3,9 @@ defmodule JackAnalyzer do
   Compiles Jack source code into Jack VM code.
   """
 
-  alias JackAnalyzer.{Tokenizer, CompilationEngine, PrettyPrinter}
+  alias JackAnalyzer.{Tokenizer, Compiler, PrettyPrinter}
 
-  @type compiled_result :: {target_type, {Tokenizer.tokens, CompilationEngine.tree_node}}
+  @type compiled_result :: {target_type, {Tokenizer.tokens, Compiler.tree_node}}
   @type compile_options :: [save_xml: boolean,
                             output_tokens: boolean,
                             print_results: boolean]
@@ -76,7 +76,7 @@ defmodule JackAnalyzer do
   @spec compile_string(binary) :: compiled_result
   def compile_string(str) do
     tokens = Tokenizer.tokenize(str)
-    tree = CompilationEngine.compile(tokens)
+    tree = Compiler.compile(tokens)
     {:string, {tokens, tree}}
   end
 

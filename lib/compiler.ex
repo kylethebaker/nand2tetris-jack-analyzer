@@ -1,4 +1,4 @@
-defmodule JackAnalyzer.CompilationEngine do
+defmodule JackAnalyzer.Compiler do
   @moduledoc """
   Used for compiling Jack tokens into a parse tree based on the Jack grammar
   specification.
@@ -31,6 +31,31 @@ defmodule JackAnalyzer.CompilationEngine do
 
   @type tree_node :: {tree_type, tree_body}
 
+  # 'class' identifier '{' classVarDec* subroutineDec* '}'
+  grammar :class do
+    keyword "class"
+    identifier
+    symbol "{"
+    compile :classVarDec
+    zero_or_many :subroutineDec
+    symbol "}"
+  end
+
+  # ('static' | 'field') type identifier additionalVarDec ';'
+  grammar :classVarDec do
+    keyword ["static", "class"]
+    type
+    identifier
+    zero_or_many :additionalVarDec
+    symbol ";"
+  end
+
+  # ',' identifier
+  grammar :additionalVarDec do
+    symbol ","
+    identifier
+  end
+
   def compile(tks) do
     {:class, [tks]}
     #{:class, compile_class({tks, []})}
@@ -38,21 +63,21 @@ defmodule JackAnalyzer.CompilationEngine do
 
   # 'class' identifier '{' classVarDec* subroutineDec* '}'
   def compile_class({tks, tree} = state) do
-    #sub_state = {tks, []}
-    #with \
-    #  {:ok, sub_state} <- take(sub_state, :keyword, "class"),
-    #  {:ok, sub_state} <- take(sub_state, :identifier),
-    #  {:ok, sub_state} <- take(sub_state, :symbol, "{"),
-    #  {:ok, sub_state} <- take(sub_state, :classVarDec),
-    #  {:ok, sub_state} <- take(sub_state, :subroutineDec),
-    #  {:ok, sub_state} <- take(sub_state, :symbol, "}")
-    #  
-    #do
-    #  {new_tks, sub_tree} = sub_state
-    #  {new_tks, tree ++ {:class, sub_tree}}
-    #else
-    #  _ -> {state}
-    #end
+    sub_state = {tks, []}
+    sub_state
+    with \
+      {:ok, sub_state} <- take(sub_state, :keyword, "class"),
+      {:ok, sub_state} <- take(sub_state, :identifier),
+      {:ok, sub_state} <- take(sub_state, :symbol, "{"),
+      {:ok, sub_state} <- take(sub_state, :classVarDec),
+      {:ok, sub_state} <- take(sub_state, :subroutineDec),
+      {:ok, sub_state} <- take(sub_state, :symbol, "}")
+    do
+      {new_tks, sub_tree} = sub_state
+      {new_tks, tree ++ {:class, sub_tree}}
+    else
+      _ -> {state}
+    end
 
   end
 
