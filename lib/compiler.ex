@@ -32,7 +32,7 @@ defmodule JackAnalyzer.Compiler do
   @type tree_node :: {tree_type, tree_body}
 
   # 'class' identifier '{' classVarDec* subroutineDec* '}'
-  grammar :class do
+  defrule :class do
     keyword "class"
     identifier
     symbol "{"
@@ -42,7 +42,7 @@ defmodule JackAnalyzer.Compiler do
   end
 
   # ('static' | 'field') type identifier additionalVarDec ';'
-  grammar :classVarDec do
+  rule :classVarDec do
     keyword ["static", "class"]
     type
     identifier
