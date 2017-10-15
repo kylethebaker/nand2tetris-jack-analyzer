@@ -1,21 +1,24 @@
 # JackAnalyzer
 
-**TODO: Add description**
+Source -> Bytecode compiler for the Jack language (_work in progress_).
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `jack_analyzer` to your list of dependencies in `mix.exs`:
+Run either `make` or `mix escript.build` to generate the executable.
 
-```elixir
-def deps do
-  [
-    {:jack_analyzer, "~> 0.1.0"}
-  ]
-end
-```
+## Usage
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/jack_analyzer](https://hexdocs.pm/jack_analyzer).
+`JackAnalyzer <target> [opts]`
 
+Where `target` is either a Jack source file with the `.jack` extension or a
+directory containing Jack files. If a directory is passed then all Jack files
+in the directory will be compiled.
+
+### Options
+
+- **--no-save-xml** - By default the parse tree will be saved with a
+  `_Tree.xml` suffix in the source directory. This option disabled that.
+  enabled by default.
+- **--print-results** - Prints the parse tree to stdout.
+- **--output-tokens** - Includes the tokens in the output, either to stdout or
+  as a file with a `_Tokens.xml` suffix, depending on output options.
